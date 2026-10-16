@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Agent 开发自学路线图</title>
+<style>
+  :root {
+    --paper: #faf7f2;
+    --ink: #1c1a17;
+    --ink-soft: #5a554e;
+    --accent: #c23b22;
+    --accent-soft: #f3e3de;
+    --line: #e4ddd3;
+    --tag-bg: #efe9df;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Source Han Serif SC", "Noto Serif SC", "Songti SC", "SimSun", serif;
+    line-height: 1.85;
+    -webkit-font-smoothing: antialiased;
+  }
+  .sans { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif; }
+
+  /* ===== 头部 ===== */
+  header {
+    border-bottom: 3px double var(--ink);
+    padding: 72px 24px 48px;
+    text-align: center;
+  }
+  header .kicker {
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    font-size: 13px; letter-spacing: 0.35em; color: var(--accent);
+    text-transform: uppercase; margin-bottom: 18px;
+  }
+  header h1 { font-size: clamp(30px, 5vw, 46px); font-weight: 900; letter-spacing: 0.04em; }
+  header .meta {
+    margin-top: 20px; font-size: 14px; color: var(--ink-soft);
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+  }
+  header .meta span { margin: 0 10px; }
+
+  .wrap { max-width: 860px; margin: 0 auto; padding: 0 24px; }
+
+  /* ===== 总览表 ===== */
+  .overview { padding: 56px 0 8px; }
+  table {
+    width: 100%; border-collapse: collapse; margin: 24px 0 8px;
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    font-size: 15px;
+  }
+  th {
+    text-align: left; padding: 10px 12px; border-bottom: 2px solid var(--ink);
+    font-weight: 700; font-size: 13px; letter-spacing: 0.1em; color: var(--ink-soft);
+  }
+  td { padding: 12px; border-bottom: 1px solid var(--line); }
+  td.stage-no { font-weight: 700; color: var(--accent); width: 48px; }
+  tr:hover td { background: rgba(194,59,34,0.04); }
+  .note {
+    margin-top: 18px; padding: 14px 18px; background: var(--tag-bg);
+    border-left: 3px solid var(--accent); font-size: 14.5px;
+  }
+
+  /* ===== 阶段卡片 ===== */
+  .stage { padding: 56px 0 0; }
+  .stage-head { display: flex; align-items: baseline; gap: 16px; border-bottom: 2px solid var(--ink); padding-bottom: 12px; }
+  .stage-head .num {
+    font-size: 44px; font-weight: 900; color: var(--accent);
+    font-family: Georgia, "Times New Roman", serif; line-height: 1;
+  }
+  .stage-head h2 { font-size: 24px; font-weight: 900; letter-spacing: 0.02em; }
+  .stage-head .eps {
+    margin-left: auto; font-size: 13px; color: var(--ink-soft);
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    white-space: nowrap;
+  }
+  .goal {
+    margin: 20px 0 8px; font-size: 16.5px; font-weight: 700;
+  }
+  .goal::before { content: "目标 · "; color: var(--accent); }
+  .stage h3 {
+    margin: 28px 0 10px; font-size: 15px; letter-spacing: 0.15em;
+    color: var(--accent);
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+  }
+  .stage h3::before { content: "■ "; font-size: 10px; vertical-align: 2px; }
+  .stage p, .stage li { font-size: 15.5px; color: #2e2b26; }
+  .stage ul, .stage ol { padding-left: 1.6em; }
+  .stage li { margin-bottom: 8px; }
+  .warn {
+    margin: 20px 0; padding: 16px 20px; background: var(--accent-soft);
+    border-left: 3px solid var(--accent); font-size: 14.5px;
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+  }
+  .warn strong { color: var(--accent); }
+  a { color: var(--accent); text-decoration: none; border-bottom: 1px dotted var(--accent); }
+  a:hover { background: var(--accent-soft); border-bottom-style: solid; }
+  code {
+    font-family: "JetBrains Mono", Consolas, monospace; font-size: 13px;
+    background: var(--tag-bg); padding: 2px 6px; border-radius: 3px;
+  }
+  .accept { font-size: 14px; color: var(--ink-soft); font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; }
+
+  /* ===== 学习建议 ===== */
+  .tips { padding: 64px 0 0; }
+  .tips ol { counter-reset: tip; list-style: none; padding: 0; }
+  .tips li {
+    counter-increment: tip; padding: 18px 0 18px 56px; position: relative;
+    border-bottom: 1px solid var(--line); font-size: 15.5px;
+  }
+  .tips li::before {
+    content: counter(tip, decimal-leading-zero);
+    position: absolute; left: 0; top: 18px;
+    font-family: Georgia, serif; font-size: 24px; font-weight: 700; color: var(--accent);
+  }
+  .tips strong { color: var(--accent); }
+
+  footer {
+    margin-top: 72px; padding: 32px 24px 48px; text-align: center;
+    border-top: 3px double var(--ink);
+    font-size: 13px; color: var(--ink-soft);
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="kicker">SELF-STUDY ROADMAP</div>
+  <h1>AI Agent 开发自学路线图</h1>
+  <div class="meta">
+    <span>基于 B 站课程目录（94 集）重排</span>·
+    <span>全部配套官方文档</span>·
+    <span>整理于 2026-10-08</span>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- 总览 -->
+  <section class="overview">
+    <table>
+      <thead>
+        <tr><th>阶段</th><th>主题</th><th>对应视频</th><th>建议时长</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="stage-no">0</td><td>环境准备与基础认知</td><td>01–05</td><td>1 周</td></tr>
+        <tr><td class="stage-no">1</td><td>提示词工程</td><td>04–05、47–53</td><td>1 周</td></tr>
+        <tr><td class="stage-no">2</td><td>大模型原理（Transformer）</td><td>54–65</td><td>1–2 周</td></tr>
+        <tr><td class="stage-no">3</td><td>RAG 检索增强生成 ⭐</td><td>16–31</td><td>2 周</td></tr>
+        <tr><td class="stage-no">4</td><td>LangChain 1.0 实战</td><td>32–40</td><td>1–2 周</td></tr>
+        <tr><td class="stage-no">5</td><td>LangGraph 实战</td><td>41–46</td><td>1–2 周</td></tr>
+        <tr><td class="stage-no">6</td><td>Agent 方法论与多智能体</td><td>06–12</td><td>1 周</td></tr>
+        <tr><td class="stage-no">7</td><td>综合项目实战</td><td>13–15、79–94</td><td>2 周</td></tr>
+      </tbody>
+    </table>
+    <div class="note">
+      <strong>全周期约 10–12 周</strong>（每天 2–3 小时）。视频标题所谓"七天速成"不现实，按这个节奏学完才算真正掌握。
+    </div>
+  </section>
+
+  <!-- 阶段 0 -->
+  <section class="stage" id="s0">
+    <div class="stage-head">
+      <div class="num">00</div>
+      <h2>环境准备与基础认知</h2>
+      <div class="eps">对应 01–05 集 · 1 周</div>
+    </div>
+    <p class="goal">跑通第一个 LLM 调用，理解大模型能做什么、不能做什么。</p>
+    <h3>知识点</h3>
+    <p>LLM 基本概念、应用场景、API 调用、Gradio 快速搭界面</p>
+    <h3>实操练习</h3>
+    <ol>
+      <li>注册一个大模型 API（OpenAI / Anthropic / 国内 DeepSeek、通义均可），用 Python 完成第一次对话调用</li>
+      <li>用 Gradio 给这个调用套一个 Web 界面</li>
+    </ol>
+    <h3>官方资料</h3>
+    <ul>
+      <li>Gradio 官方文档：<a href="https://www.gradio.app/docs">gradio.app/docs</a></li>
+      <li>DeepSeek API 文档（国内低成本上手）：<a href="https://api-docs.deepseek.com/">api-docs.deepseek.com</a></li>
+    </ul>
+  </section>
+
+  <!-- 阶段 1 -->
+  <section class="stage" id="s1">
+    <div class="stage-head">
+      <div class="num">01</div>
+      <h2>提示词工程</h2>
+      <div class="eps">对应 04–05、47–53 集 · 1 周</div>
+    </div>
+    <p class="goal">写出结构化、可复用的提示词，理解提示词的边界（注入攻击）。</p>
+    <h3>知识点</h3>
+    <p>基本原则、提示词结构、万能框架（角色 + 任务 + 上下文 + 输出格式）、提示词自动化、提示词攻击与防御</p>
+    <h3>实操练习</h3>
+    <ol>
+      <li>把一个模糊需求改写成结构化提示词，对比改写前后的输出质量</li>
+      <li>用 few-shot 示例控制输出为固定 JSON 格式</li>
+    </ol>
+    <h3>官方资料</h3>
+    <ul>
+      <li>Anthropic Prompt Engineering 文档（质量最高，推荐）：<a href="https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/overview">docs.anthropic.com</a></li>
+      <li>OpenAI Prompt Engineering Guide：<a href="https://platform.openai.com/docs/guides/prompt-engineering">platform.openai.com</a></li>
+    </ul>
+  </section>
+
+  <!-- 阶段 2 -->
+  <section class="stage" id="s2">
+    <div class="stage-head">
+      <div class="num">02</div>
+      <h2>大模型原理 — Transformer</h2>
+      <div class="eps">对应 54–65 集 · 1–2 周</div>
+    </div>
+    <p class="goal">理解 Token、Embedding、注意力机制，知其所以然。做应用开发不必推导数学，但要懂概念。</p>
+    <h3>知识点</h3>
+    <p>Tokenization、Embedding、位置编码、Self-Attention、Multi-Head Attention、前馈网络、编码器/解码器</p>
+    <h3>实操练习</h3>
+    <ol>
+      <li>用 <code>transformers</code> 库加载一个小模型，打印 tokenizer 的分词结果</li>
+      <li>调用 embedding 模型，计算两句话的余弦相似度（为 RAG 打基础）</li>
+    </ol>
+    <h3>一手资料</h3>
+    <ul>
+      <li>The Illustrated Transformer（Jay Alammar 经典图解）：<a href="https://jalammar.github.io/illustrated-transformer/">jalammar.github.io</a></li>
+      <li>Hugging Face 免费课程：<a href="https://huggingface.co/learn/nlp-course">huggingface.co/learn/nlp-course</a></li>
+    </ul>
+  </section>
+
+  <!-- 阶段 3 -->
+  <section class="stage" id="s3">
+    <div class="stage-head">
+      <div class="num">03</div>
+      <h2>RAG 检索增强生成 ⭐</h2>
+      <div class="eps">对应 16–31 集 · 2 周</div>
+    </div>
+    <p class="goal">独立搭建一个生产可用的 RAG 系统，理解"RAG 是工程问题不是算法问题"。</p>
+    <h3>知识点</h3>
+    <ul>
+      <li>基础流程：文档加载 → 分割 → 向量化 → 向量数据库 → 检索 → 增强生成</li>
+      <li>检索原理：倒排索引、KNN、ANN 近似最近邻、聚类索引、PQ 乘积量化</li>
+      <li>优化技巧：混合检索（向量 + BM25）、重排序（Rerank）、查询改写</li>
+      <li>评估：没有评估就无法优化（RAGAS 等框架）</li>
+    </ul>
+    <h3>实操练习</h3>
+    <ol>
+      <li>用 LangChain + 一个向量库（Chroma / Milvus / FAISS 任选）给自己的笔记文档建知识库并问答</li>
+      <li>对比"仅向量检索"与"向量 + BM25 混合检索 + Rerank"的回答质量差异</li>
+    </ol>
+    <h3>官方资料</h3>
+    <ul>
+      <li>LangChain RAG 教程：<a href="https://docs.langchain.com/oss/python/langchain/quickstart">docs.langchain.com</a></li>
+      <li>Milvus 官方文档（生产级向量库）：<a href="https://milvus.io/docs">milvus.io/docs</a></li>
+      <li>RAGAS 评估框架：<a href="https://docs.ragas.io/">docs.ragas.io</a></li>
+      <li>NVIDIA RAG 概念解释：<a href="https://www.nvidia.cn/glossary/retrieval-augmented-generation/">nvidia.cn</a></li>
+    </ul>
+    <div class="warn">
+      <strong>趋势提示：</strong>2026 年的新方向是 Agentic RAG —— 由 Agent 自主决定何时检索、检索什么，而不是固定流水线。学完基础 RAG 后可在阶段 5 之后回看。
+    </div>
+  </section>
+
+  <!-- 阶段 4 -->
+  <section class="stage" id="s4">
+    <div class="stage-head">
+      <div class="num">04</div>
+      <h2>LangChain 1.0 实战</h2>
+      <div class="eps">对应 32–40 集 · 1–2 周</div>
+    </div>
+    <p class="goal">掌握 LangChain 1.0 的核心抽象 <code>create_agent</code>（模型 + 工具 + 系统提示词 + 中间件）。</p>
+    <div class="warn">
+      <strong>⚠️ 版本提醒：</strong>LangChain 1.0 已于 2025 年底正式发布，与 0.x 是完全不同的包结构，核心围绕 Agent 抽象重建，构建在 LangGraph 之上。网上大量旧教程（<code>LLMChain</code>、<code>AgentExecutor</code> 等写法）已过时，务必以 v1 文档为准。
+    </div>
+    <h3>知识点</h3>
+    <p>Model 与 Prompt、Agent 与 Tool、记忆（Memory / Checkpointer）、Middleware 中间件、生产部署</p>
+    <h3>实操练习</h3>
+    <ol>
+      <li>按官方 Quickstart 做一个带自定义工具的 Agent（如天气查询、文件读取）</li>
+      <li>加上 <code>InMemorySaver</code> 让 Agent 拥有多轮对话记忆</li>
+      <li>开通 LangSmith 免费额度，给 Agent 加上调用追踪（Tracing）</li>
+    </ol>
+    <h3>官方资料</h3>
+    <ul>
+      <li>Quickstart（首选入口）：<a href="https://docs.langchain.com/oss/python/langchain/quickstart">docs.langchain.com/oss/python/langchain/quickstart</a></li>
+      <li>Agents 概念文档：<a href="https://docs.langchain.com/oss/python/langchain/agents">…/langchain/agents</a></li>
+      <li>v1 新特性与迁移指南：<a href="https://docs.langchain.com/oss/python/releases/langchain-v1">…/releases/langchain-v1</a></li>
+    </ul>
+  </section>
+
+  <!-- 阶段 5 -->
+  <section class="stage" id="s5">
+    <div class="stage-head">
+      <div class="num">05</div>
+      <h2>LangGraph 实战</h2>
+      <div class="eps">对应 41–46 集 · 1–2 周</div>
+    </div>
+    <p class="goal">用图（Graph）的方式构建可控、可恢复、有人工干预的智能体系统。</p>
+    <h3>知识点</h3>
+    <p>StateGraph、节点与边、Checkpointer 持久化记忆、Human-in-the-loop（人机协作）、时间旅行（回溯状态）、多智能体协作</p>
+    <h3>实操练习</h3>
+    <ol>
+      <li>官方 Quickstart：构建一个带计算器的数学 Agent（Graph API）</li>
+      <li>在图上加入 interrupt，实现"执行敏感操作前等人工确认"</li>
+      <li>用 <code>langgraph-swarm</code> 实现两个 Agent 之间互相转接（handoff）</li>
+    </ol>
+    <h3>官方资料</h3>
+    <ul>
+      <li>LangGraph Quickstart：<a href="https://docs.langchain.com/oss/python/langgraph/quickstart">docs.langchain.com/oss/python/langgraph/quickstart</a></li>
+      <li>LangGraph 产品页（架构理念）：<a href="https://www.langchain.com/langgraph">langchain.com/langgraph</a></li>
+      <li>多智能体 swarm 库：<a href="https://github.com/langchain-ai/langgraph-swarm-py">github.com/langchain-ai/langgraph-swarm-py</a></li>
+    </ul>
+  </section>
+
+  <!-- 阶段 6 -->
+  <section class="stage" id="s6">
+    <div class="stage-head">
+      <div class="num">06</div>
+      <h2>Agent 方法论与行业落地</h2>
+      <div class="eps">对应 06–12 集 · 1 周</div>
+    </div>
+    <p class="goal">从"会写代码"上升到"会设计系统"。</p>
+    <h3>知识点</h3>
+    <p>Agent 开发指南、典型范式（ReAct、Plan-and-Execute 等）、核心能力与外围技术、多智能体协同、行业落地场景（客服、营销、数据分析）</p>
+    <h3>实操练习</h3>
+    <ol>
+      <li>用一张架构图梳理你阶段 3–5 做过的项目：模型层 / 检索层 / 编排层 / 接口层各是什么</li>
+      <li>分析一个真实需求（如公司内部的问答客服），写出技术选型理由</li>
+    </ol>
+    <h3>参考资料</h3>
+    <ul>
+      <li>Anthropic《Building Effective Agents》（业界公认的 Agent 设计最佳实践）：<a href="https://www.anthropic.com/research/building-effective-agents">anthropic.com</a></li>
+      <li>freeCodeCamp《How to Build a Multi-Agent AI System with LangGraph, MCP, and A2A》（2026 免费全书）：<a href="https://www.freecodecamp.org/news/how-to-build-a-multi-agent-ai-system-with-langgraph-mcp-and-a2a-full-book/">freecodecamp.org</a></li>
+    </ul>
+  </section>
+
+  <!-- 阶段 7 -->
+  <section class="stage" id="s7">
+    <div class="stage-head">
+      <div class="num">07</div>
+      <h2>综合项目实战</h2>
+      <div class="eps">对应 13–15、79–94 集 · 2 周</div>
+    </div>
+    <p class="goal">做 2 个能写进简历的完整项目。</p>
+    <h3>项目 A：企业级 RAG 智能客服</h3>
+    <p>知识库构建 + 混合检索 + Rerank + Agent 编排 + 接入 IM（企业微信 / 飞书 / Web 均可）</p>
+    <p class="accept">验收标准：有评估指标（召回率、回答准确率）、有引用溯源、有兜底话术</p>
+    <h3>项目 B：LLM 信息抽取</h3>
+    <p>Prompt 设计 → 正则 / JSON 结构化 → 数据清洗 →（可选）微调小模型</p>
+    <p class="accept">验收标准：输出稳定为合法 JSON，抽取准确率达业务阈值</p>
+    <div class="warn">
+      <strong>关于 Codex 部分（66–78 集）：</strong>属于工具使用技巧，边做项目边用即可，不必单独学。视频中"绕过短信验证码"这类内容不规范，请通过官方渠道注册使用。
+    </div>
+  </section>
+
+  <!-- 学习建议 -->
+  <section class="tips">
+    <div class="stage-head">
+      <div class="num">★</div>
+      <h2>学习建议</h2>
+    </div>
+    <ol>
+      <li><strong>视频当目录，文档当教材：</strong>视频用来建立整体认知，具体 API 写法一律查官方文档——这个领域半年一变，视频录完即过时。</li>
+      <li><strong>每阶段必须动手：</strong>上面的实操练习是最低交付物，只看不练等于没学。</li>
+      <li><strong>善用 AI 辅助：</strong>可以让 AI 编程助手帮你装 LangChain 官方 Docs MCP，随写随查最新文档。</li>
+      <li><strong>简历导向：</strong>阶段 7 的两个项目 + 一篇技术复盘文章，比"看过 748 集视频"有说服力得多。</li>
+    </ol>
+  </section>
+
+</div>
+
+<footer>
+  AI Agent 开发自学路线图 · 基于 BV1xwVr6FEh4 课程目录重排 · 配套官方文档 · 2026-10
+</footer>
+
+</body>
+</html>

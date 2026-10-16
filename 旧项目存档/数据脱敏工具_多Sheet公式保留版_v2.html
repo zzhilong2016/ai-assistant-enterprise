@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>数据脱敏工具 · 多工作表公式保留版 v2</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --bg:#eef1f6; --card:#ffffff; --line:#e3e7ef; --line2:#d4dae6;
+  --tx:#1c2333; --tx2:#5b6478; --mut:#8b94a8;
+  --pri:#2456e6; --pri-d:#1c44bd; --pri-soft:#e8eefd;
+  --ok:#0d8a4f; --ok-bg:#e5f6ec;
+  --warn:#b45309; --warn-bg:#fdf1e2;
+  --chg:#fff1c2; --chg-bd:#e8c866;
+  --r:14px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg); color:var(--tx);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei","PingFang SC","Hiragino Sans GB",Roboto,sans-serif;
+  font-size:14px; line-height:1.55;
+}
+.wrap{max-width:1200px;margin:0 auto;padding:0 20px 40px}
+
+/* 顶栏 */
+.topbar{
+  background:linear-gradient(120deg,#2456e6 0%,#5b3ce0 55%,#7c3aed 100%);
+  color:#fff; padding:18px 20px;
+}
+.topbar .brand{max-width:1200px;margin:0 auto;display:flex;align-items:center;gap:14px}
+.logo{font-size:34px;line-height:1}
+.topbar h1{margin:0;font-size:22px;letter-spacing:.5px}
+.topbar .sub{margin:2px 0 0;opacity:.85;font-size:12.5px}
+.badges{margin:12px auto 0;max-width:1200px;display:flex;gap:8px;flex-wrap:wrap}
+.badge{
+  background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.35);
+  border-radius:999px;padding:3px 12px;font-size:12px;
+}
+.badge.ok{background:rgba(255,255,255,.22)}
+
+/* 选项条 */
+.optsbar{
+  background:var(--card);border:1px solid var(--line);border-radius:var(--r);
+  margin-top:18px;padding:14px 16px;box-shadow:0 1px 2px rgba(20,30,60,.04);
+}
+.opt-title{font-weight:600;margin-bottom:10px;font-size:13.5px;color:var(--tx2)}
+.strategy-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+@media(max-width:900px){.strategy-row{grid-template-columns:repeat(2,1fr)}}
+.s-card{position:relative;display:block;cursor:pointer}
+.s-card input{position:absolute;opacity:0;pointer-events:none}
+.s-inner{
+  display:flex;flex-direction:column;gap:6px;align-items:flex-start;
+  border:1.5px solid var(--line);border-radius:12px;padding:10px 12px;height:100%;
+  background:#fbfcfe;transition:.15s;
+}
+.s-card input:checked + .s-inner{border-color:var(--pri);background:var(--pri-soft);box-shadow:0 0 0 1px var(--pri) inset}
+.s-ico{font-size:18px}
+.s-t b{display:block;font-size:13.5px}
+.s-t em{display:block;font-style:normal;color:var(--mut);font-size:11.5px;margin-top:2px}
+.tag{font-size:10.5px;border-radius:999px;padding:1px 8px;font-weight:600}
+.tag.ok{background:var(--ok-bg);color:var(--ok)}
+.tag.warn{background:var(--warn-bg);color:var(--warn)}
+.tag.mute{background:#eef0f4;color:#8b94a8}
+.tag.info{background:var(--pri-soft);color:var(--pri)}
+.opt-sub{display:flex;flex-wrap:wrap;gap:14px;align-items:center;margin-top:12px;color:var(--tx2)}
+.opt-sub label{display:inline-flex;align-items:center;gap:5px;font-size:13px;cursor:pointer}
+.opt-sub input[type=number]{width:80px;padding:4px 8px;border:1px solid var(--line2);border-radius:8px;font-size:13px}
+.opt-sub input[type=checkbox]{accent-color:var(--pri);width:15px;height:15px}
+.opt-hint{width:100%;font-size:11.5px;color:var(--mut);margin-top:6px}
+
+/* 标签页 */
+.tabs{display:flex;gap:8px;margin:16px 0}
+.tab{
+  border:1px solid var(--line2);background:var(--card);color:var(--tx2);
+  padding:9px 22px;border-radius:999px;font-size:14px;cursor:pointer;transition:.15s;
+}
+.tab:hover{border-color:var(--pri);color:var(--pri)}
+.tab.active{background:var(--pri);border-color:var(--pri);color:#fff;font-weight:600}
+.panel{display:none}
+.panel.active{display:block;animation:fade .2s ease}
+@keyframes fade{from{opacity:0;transform:translateY(3px)}to{opacity:1}}
+
+/* 卡片 */
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;margin-bottom:14px;box-shadow:0 1px 2px rgba(20,30,60,.04)}
+.card-h{display:flex;align-items:center;justify-content:space-between;gap:8px;font-weight:600;margin-bottom:10px;flex-wrap:wrap}
+.h-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.grid2{display:grid;grid-template-columns:1.4fr 1fr;gap:14px}
+@media(max-width:900px){.grid2{grid-template-columns:1fr}}
+.colstack{display:flex;flex-direction:column;gap:14px}
+
+textarea{
+  width:100%;border:1.5px solid var(--line);border-radius:12px;padding:10px 12px;
+  font-family:inherit;font-size:13.5px;color:var(--tx);resize:vertical;background:#fcfdff;
+}
+textarea:focus{outline:none;border-color:var(--pri)}
+textarea.big{height:300px;min-height:200px}
+textarea.mid{height:140px;min-height:100px}
+textarea[readonly]{background:#f7f8fb}
+
+.muted{color:var(--tx2);font-size:12.5px;margin:0 0 10px}
+.hl{color:var(--warn)}
+.meta{font-size:12px;color:var(--tx2);margin-top:8px;background:#f5f7fb;border-radius:10px;padding:6px 10px;display:none}
+.meta.show{display:block}
+.stats{font-size:12.5px;color:var(--ok);margin-top:10px;min-height:4px}
+.warn-note{color:var(--warn);font-size:12.5px;margin-top:8px}
+
+/* 按钮 */
+.btn,.primary{
+  display:inline-flex;align-items:center;justify-content:center;gap:5px;
+  border:1px solid var(--line2);background:var(--card);color:var(--tx);
+  padding:6px 14px;border-radius:9px;font-size:13px;cursor:pointer;transition:.15s;
+  font-family:inherit;white-space:nowrap;
+}
+.btn:hover{border-color:var(--pri);color:var(--pri)}
+.btn.mini{padding:3px 10px;font-size:12px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.primary{
+  background:var(--pri);border-color:var(--pri);color:#fff;font-weight:600;
+}
+.primary:hover{background:var(--pri-d);color:#fff}
+.primary-soft{background:var(--pri-soft);border-color:var(--pri);color:var(--pri);font-weight:600}
+.primary-soft:hover{background:var(--pri-soft)}
+.big-btn{width:100%;padding:12px;font-size:15px;border-radius:11px}
+label.btn{position:relative}
+label.btn input[type=file]{position:absolute;opacity:0;width:1px;height:1px;overflow:hidden}
+.row-actions{margin:4px 0 8px}
+
+/* Sheet 标签 */
+.sheet-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.sheet-tab{
+  border:1px solid var(--line2);background:#fbfcfe;color:var(--tx2);
+  padding:5px 14px;border-radius:8px;font-size:13px;cursor:pointer;transition:.15s;
+  display:inline-flex;align-items:center;gap:6px;
+}
+.sheet-tab:hover{border-color:var(--pri);color:var(--pri)}
+.sheet-tab.active{background:var(--pri);border-color:var(--pri);color:#fff;font-weight:600}
+.sheet-tab .s-badge{font-size:10px;background:rgba(255,255,255,.25);padding:1px 6px;border-radius:999px}
+
+/* 列选择 */
+.cols{display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:8px;max-height:320px;overflow:auto;padding:2px}
+.col{
+  display:flex;align-items:flex-start;gap:8px;border:1.5px solid var(--line);
+  border-radius:10px;padding:8px 10px;cursor:pointer;background:#fbfcfe;transition:.12s;
+}
+.col:hover{border-color:var(--pri)}
+.col.on{border-color:var(--pri);background:var(--pri-soft)}
+.col input{accent-color:var(--pri);width:15px;height:15px;margin-top:2px;flex:none}
+.col .cname{font-weight:600;font-size:13px;word-break:break-all}
+.col .ctype{font-size:10.5px;border-radius:6px;padding:0 6px;font-weight:600;display:inline-block;margin-top:1px}
+.col .ctype.formula{background:#eef0f4;color:#5b6478}
+.col .ctype.data{background:#e5f6ec;color:#0d8a4f}
+.col .ctype.mixed{background:#fdf1e2;color:#b45309}
+.col .csample{font-size:11px;color:var(--mut);margin-top:3px;word-break:break-all;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.col.formula-only{opacity:.55}
+
+/* 表格预览 */
+.table-wrap{overflow:auto;max-height:480px;border:1px solid var(--line);border-radius:10px}
+table{border-collapse:collapse;font-size:12.5px;width:100%;background:#fff}
+th,td{border-bottom:1px solid var(--line);padding:6px 10px;text-align:left;white-space:nowrap;max-width:260px;overflow:hidden;text-overflow:ellipsis}
+th{background:#f3f5fa;position:sticky;top:0;z-index:1;font-weight:600}
+td.chg{background:var(--chg);box-shadow:inset 0 0 0 1px var(--chg-bd);font-weight:600}
+td.formula{color:#5b6478;font-style:italic}
+tr:hover td{background:#fafbff}
+
+/* 页脚 */
+.foot{margin-top:6px;border-top:1px dashed var(--line2);padding-top:14px;color:var(--mut);font-size:12px}
+.foot-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+@media(max-width:900px){.foot-grid{grid-template-columns:1fr}}
+
+/* toast */
+#toast{
+  position:fixed;left:50%;bottom:34px;transform:translateX(-50%) translateY(10px);
+  background:#1c2333;color:#fff;padding:9px 18px;border-radius:10px;font-size:13px;
+  opacity:0;pointer-events:none;transition:.25s;z-index:99;max-width:80vw;box-shadow:0 6px 20px rgba(0,0,0,.2);
+}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+#toast.err{background:#b42318}
+
+/* 提示条 */
+.tipbar{background:var(--pri-soft);border:1px solid var(--pri);border-radius:10px;padding:8px 12px;font-size:12.5px;color:var(--pri-d);margin-bottom:10px;display:none}
+.tipbar.show{display:block}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <div class="logo">🛡</div>
+    <div>
+      <h1>数据脱敏工具</h1>
+      <p class="sub">多工作表 · 公式感知 · 本地离线运行（增强版 v2 · 还原已修复）</p>
+    </div>
+  </div>
+  <div class="badges">
+    <span class="badge ok">🔒 100% 本地运算</span>
+    <span class="badge ok">📊 多 Sheet 支持</span>
+    <span class="badge ok">🧮 公式自动保留</span>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- 全局策略选项 -->
+  <div class="optsbar">
+    <div class="opt-title">脱敏策略</div>
+    <div class="strategy-row">
+      <label class="s-card">
+        <input type="radio" name="strategy" value="hash" checked>
+        <span class="s-inner">
+          <span class="s-ico">🔗</span>
+          <span class="s-t"><b>hash 哈希映射</b><em>相同数字→相同新数 · 可还原 · 推荐</em></span>
+          <span class="tag ok">可还原</span>
+        </span>
+      </label>
+      <label class="s-card">
+        <input type="radio" name="strategy" value="placeholder">
+        <span class="s-inner">
+          <span class="s-ico">🎭</span>
+          <span class="s-t"><b>placeholder 占位符</b><em>替换为 [A] [B]，完全隐藏数值</em></span>
+          <span class="tag ok">可还原</span>
+        </span>
+      </label>
+      <label class="s-card">
+        <input type="radio" name="strategy" value="blur">
+        <span class="s-inner">
+          <span class="s-ico">🌫</span>
+          <span class="s-t"><b>blur 模糊化</b><em>数量级相似、小幅偏移</em></span>
+          <span class="tag warn">不可还原</span>
+        </span>
+      </label>
+      <label class="s-card">
+        <input type="radio" name="strategy" value="range">
+        <span class="s-inner">
+          <span class="s-ico">🎯</span>
+          <span class="s-t"><b>range 区间</b><em>替换为 [低~高] 区间</em></span>
+          <span class="tag warn">不可还原</span>
+        </span>
+      </label>
+    </div>
+    <div class="opt-sub">
+      <label class="opt-item">随机种子
+        <input type="number" id="seedInput" value="42" min="0" step="1">
+      </label>
+      <label class="opt-item"><input type="checkbox" id="skipYear" checked> 跳过年份（1900-2100）</label>
+      <label class="opt-item"><input type="checkbox" id="skipPhone"> 保留手机号</label>
+      <label class="opt-item"><input type="checkbox" id="keepFormula" checked disabled> 保留公式关系</label>
+      <span class="opt-hint">表格模式下，含公式的单元格会被自动跳过，公式引用的原始数据脱敏后，计算结果会自动更新。当前增强版支持多工作表分别选择列。</span>
+    </div>
+  </div>
+
+  <nav class="tabs">
+    <button class="tab active" data-tab="text">📝 文本脱敏</button>
+    <button class="tab" data-tab="table">📊 表格脱敏</button>
+    <button class="tab" data-tab="restore">↩️ 还原数据</button>
+  </nav>
+
+  <!-- ============ 文本面板 ============ -->
+  <section id="panel-text" class="panel active">
+    <div class="grid2">
+      <div class="card">
+        <div class="card-h">① 输入文本
+          <div class="h-actions">
+            <button class="btn" id="tSample">填入示例</button>
+            <label class="btn">载入 .txt/.md<input type="file" id="tFile" accept=".txt,.md,.text,.csv,text/plain" hidden></label>
+            <button class="btn" id="tClear">清空</button>
+          </div>
+        </div>
+        <textarea id="tInput" class="big" placeholder="在此粘贴或输入需要脱敏的文本…"></textarea>
+      </div>
+      <div class="colstack">
+        <div class="card">
+          <div class="card-h">② 开始脱敏</div>
+          <p class="muted">将按上方选择的策略处理文本中的全部数字。年份默认跳过。</p>
+          <button class="primary big-btn" id="tRun">▶ 开始脱敏</button>
+          <div class="stats" id="tStats"></div>
+        </div>
+        <div class="card">
+          <div class="card-h">策略怎么选？</div>
+          <ul class="muted">
+            <li><b>发给 AI / 需要结论对应真实数据</b> → hash（默认，可还原）</li>
+            <li><b>给完全不信任的外部</b> → placeholder（极致隐藏）</li>
+            <li><b>内部做趋势分析、画图</b> → blur（保留量级）</li>
+            <li><b>对外发布、只给大致范围</b> → range（区间）</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="card" id="tResWrap" hidden>
+      <div class="card-h">③ 脱敏结果
+        <div class="h-actions">
+          <button class="btn" id="tCopy">📋 复制结果</button>
+          <button class="btn" id="tSave">⬇ 下载 .txt</button>
+          <button class="btn primary-soft" id="tSaveMap">🔑 保存映射表 .json</button>
+        </div>
+      </div>
+      <textarea id="tOut" class="big" readonly></textarea>
+      <p class="muted warn-note" id="tWarn" hidden>⚠ 当前策略（blur / range）不可逆，无法通过映射表还原。</p>
+    </div>
+  </section>
+
+  <!-- ============ 表格面板 ============ -->
+  <section id="panel-table" class="panel">
+    <div class="card">
+      <div class="card-h">① 表格数据
+        <div class="h-actions">
+          <label class="btn">📁 选择 Excel / CSV 文件<input type="file" id="tbFile" accept=".xlsx,.xls,.csv,.tsv,.txt" hidden></label>
+          <button class="btn" id="tbPasteClip">📋 从剪贴板导入</button>
+          <button class="btn" id="tbSample">填入示例</button>
+          <button class="btn" id="tbClear">清空</button>
+        </div>
+      </div>
+      <textarea id="tbInput" class="big" placeholder="支持三种方式：&#10;1) 直接粘贴 CSV 文本；&#10;2) 在 Excel 中复制一块区域后，点击「从剪贴板导入」（自动识别制表符）；&#10;3) 点击「选择 Excel / CSV 文件」上传 .xlsx / .xls（推荐，可保留公式）。"></textarea>
+      <div class="meta" id="tbMeta"></div>
+    </div>
+
+    <div class="card" id="tbColCard" hidden>
+      <div class="card-h">② 选择工作表与脱敏列</div>
+
+      <div class="tipbar" id="formulaTip">
+        💡 检测到当前工作表包含公式列（已自动标灰）。公式单元格会被跳过不修改，但其引用的原始数据脱敏后，公式结果会自动重新计算。
+      </div>
+
+      <div class="sheet-tabs" id="sheetTabs"></div>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;margin:8px 0;flex-wrap:wrap;gap:8px">
+        <span class="muted" id="sheetInfo">正在分析…</span>
+        <div class="h-actions">
+          <button class="btn mini" id="tbPickRec">✨ 智能推荐</button>
+          <button class="btn mini" id="tbPickAll">全选</button>
+          <button class="btn mini" id="tbPickNone">全不选</button>
+        </div>
+      </div>
+
+      <div class="cols" id="tbCols"></div>
+
+      <div class="row-actions" style="margin-top:12px">
+        <button class="primary big-btn" id="tbRun">▶ 开始脱敏（处理所有工作表）</button>
+        <div class="stats" id="tbStats"></div>
+      </div>
+    </div>
+
+    <div class="card" id="tbResWrap" hidden>
+      <div class="card-h">③ 脱敏结果预览（当前工作表前 200 行，<span class="hl">黄色 = 被替换</span>，<span style="color:#5b6478;font-style:italic">斜体 = 公式单元格保留</span>）
+        <div class="h-actions">
+          <button class="btn" id="tbCopy">📋 复制当前表</button>
+          <button class="btn" id="tbSave">⬇ 下载脱敏文件（.xlsx）</button>
+          <button class="btn primary-soft" id="tbSaveMap">🔑 保存映射表 .json</button>
+        </div>
+      </div>
+      <div class="table-wrap"><table id="tbPreview"></table></div>
+    </div>
+  </section>
+
+  <!-- ============ 还原面板 ============ -->
+  <section id="panel-restore" class="panel">
+    <div class="grid2">
+      <div class="card">
+        <div class="card-h">① 映射表（脱敏时导出的 .json）
+          <label class="btn">选择文件<input type="file" id="rMapFile" accept=".json,application/json" hidden></label>
+        </div>
+        <textarea id="rMapText" class="mid" placeholder="粘贴映射表 JSON 内容，或点击「选择文件」载入。映射表＝还原密钥，请勿外泄。"></textarea>
+        <div class="meta" id="rMapMeta"></div>
+      </div>
+      <div class="card">
+        <div class="card-h">② 已脱敏的内容
+          <div class="h-actions">
+            <label class="btn">选择文件（.txt/.csv/.xlsx）<input type="file" id="rFile" accept=".xlsx,.xls,.csv,.tsv,.txt,.md" hidden></label>
+            <button class="btn" id="rClear">清空</button>
+          </div>
+        </div>
+        <textarea id="rInput" class="big" placeholder="粘贴脱敏后的文本 / CSV 内容。若是 .xlsx 脱敏文件，请用右侧按钮选择文件。&#10;&#10;提示：blur / range 策略产生的文件无法还原；hash / placeholder 可还原。"></textarea>
+        <div class="meta" id="rMeta"></div>
+      </div>
+    </div>
+    <div class="row-actions">
+      <button class="primary big-btn" id="rRun">↩ 还原数据</button>
+      <div class="stats" id="rStats"></div>
+    </div>
+    <div class="card" id="rResWrap" hidden>
+      <div class="card-h">③ 还原结果
+        <div class="h-actions">
+          <button class="btn" id="rCopy">📋 复制</button>
+          <button class="btn" id="rSave">⬇ 下载还原文件</button>
+        </div>
+      </div>
+      <textarea id="rOut" class="big" readonly></textarea>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <div class="foot-grid">
+      <div><b>多 Sheet 与公式保留</b><br>自动识别所有工作表；公式单元格自动跳过不修改，仅脱敏其引用的原始数据列；脱敏后公式可正常重算。</div>
+      <div><b>隐私与安全</b><br>所有处理在您本机浏览器完成，不上传任何数据；映射表含原始对应关系，请单独保管、勿与脱敏文件一同外发。</div>
+      <div><b>注意事项</b><br>hash/placeholder 需映射表才能还原；公式保留功能仅对上传的 .xlsx/.xls 有效；剪贴板/CSV 不支持公式。</div>
+    </div>
+  </footer>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ===================== 工具函数 ===================== */
+function $(id){return document.getElementById(id)}
+function toast(msg,err){var t=$('toast');t.textContent=msg;t.className='show'+(err?' err':'');setTimeout(function(){t.className=''},2500)}
+function escapeHtml(s){return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+function copyText(el){if(!el.value)return;el.select();document.execCommand('copy');toast('已复制到剪贴板')}
+function downloadText(filename,text){var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:'text/plain;charset=utf-8'}));a.download=filename;a.click()}
+function downloadBlob(filename,blob){var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=filename;a.click()}
+
+/* ===================== 确定性随机 ===================== */
+function seededRandom(seed){
+  var x=Math.sin(seed++)*10000;
+  return x-Math.floor(x);
+}
+function hashNumber(val,seed){
+  if(val===0)return 0;
+  var sign=val<0?-1:1,abs=Math.abs(val);
+  var mag=Math.pow(10,Math.floor(Math.log10(abs||1)));
+  var r1=seededRandom(seed+abs*13.7),r2=seededRandom(seed+abs*37.1);
+  var newVal=sign*(mag*(1+r1*8.5)+r2*mag);
+  var dec=abs<10?2:0;
+  return parseFloat(newVal.toFixed(dec));
+}
+function blurNumber(val,seed){
+  var r=seededRandom(seed+val*17.3);
+  var noise=(r-0.5)*0.2;
+  return parseFloat((val*(1+noise)).toFixed(2));
+}
+function rangeNumber(val){
+  var abs=Math.abs(val),mag=Math.pow(10,Math.floor(Math.log10(abs||1)));
+  var lo=Math.floor(abs/mag)*mag,hi=lo+mag;
+  return lo+'~'+hi;
+}
+
+/* ===================== 数字识别 ===================== */
+function isYear(n){return Number.isInteger(n)&&n>=1900&&n<=2100}
+function isPhoneLike(s){return /^1[3-9]\d{9}$/.test(String(s).replace(/\s/g,''))}
+
+/* ===================== 应用状态 ===================== */
+const App={
+  workbook:null,
+  meta:{},
+  selections:{},
+  currentSheet:null,
+  changedCells:new Set(),
+  map:{strategy:'',seed:0,valueMap:{}},
+  restoreWb:null,
+  restoreName:''
+};
+
+/* ===================== 文本脱敏 ===================== */
+const TextDes={
+  process(text,strategy,seed){
+    var skipYear=$('skipYear').checked,skipPhone=$('skipPhone').checked;
+    var map=App.map.valueMap||(App.map.valueMap={});
+    var count=0;
+    var out=text.replace(/([+-]?(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?)([万亿元块美元%])?/g,function(m, num, unit){
+      unit=unit||'';
+      var raw=parseFloat(num.replace(/,/g,''));
+      if(isNaN(raw))return m;
+      if(skipYear&&isYear(raw))return m;
+      if(skipPhone&&isPhoneLike(num))return m;
+      var key=String(raw)+unit;
+      if(map[key]!==undefined)return map[key];
+      var res;
+      if(strategy==='hash'){res=hashNumber(raw,seed+raw);}
+      else if(strategy==='blur'){res=blurNumber(raw,seed+raw);}
+      else if(strategy==='range'){res=rangeNumber(raw);}
+      else{
+        var idx=Object.keys(map).length;
+        res='['+String.fromCharCode(65+(idx%26))+(Math.floor(idx/26)||'')+']';
+      }
+      if(unit==='%')res=res+'%';
+      else if(unit&&typeof res==='number')res=Math.round(res)+unit;
+      else if(unit&&typeof res==='string'&&res.indexOf('~')>0)res=res+unit;
+      map[key]=res;
+      count++;
+      return String(res);
+    });
+    return {text:out,count,count};
+  }
+};
+
+$('tSample').onclick=function(){$('tInput').value='2025年公司营收158,000万元，同比增长23.5%，净利润3,200万元，联系人手机 13812345678。项目A成本12,500元，项目B成本8,900元。'}
+$('tClear').onclick=function(){$('tInput').value='';$('tResWrap').hidden=true}
+$('tFile').onchange=function(e){var f=e.target.files[0];if(!f)return;var r=new FileReader();r.onload=function(){$('tInput').value=r.result};r.readAsText(f)}
+$('tRun').onclick=function(){
+  var text=$('tInput').value;if(!text.trim()){toast('请输入文本',1);return}
+  var strategy=document.querySelector('input[name="strategy"]:checked').value;
+  var seed=parseInt($('seedInput').value)||42;
+  App.map={strategy,seed,valueMap:{}};
+  var res=TextDes.process(text,strategy,seed);
+  $('tOut').value=res.text;
+  $('tStats').textContent='已脱敏 '+res.count+' 处数字';
+  $('tResWrap').hidden=false;
+  $('tWarn').hidden=(strategy!=='blur'&&strategy!=='range');
+}
+$('tCopy').onclick=function(){copyText($('tOut'))}
+$('tSave').onclick=function(){downloadText('脱敏文本.txt',$('tOut').value)}
+$('tSaveMap').onclick=function(){downloadText('映射表.json',JSON.stringify(App.map,null,2))}
+
+/* ===================== 表格脱敏核心 ===================== */
+
+// 分析工作表列成分
+function analyzeSheet(ws){
+  var range=XLSX.utils.decode_range(ws['!ref']||'A1');
+  var cols=[];
+  for(var C=range.s.c;C<=range.e.c;++C){
+    var hasFormula=false,hasValue=false,hasNumber=false,sample='',header='';
+    // 采样前50行分析
+    for(var R=range.s.r;R<=range.e.r&&R<50;++R){
+      var addr=XLSX.utils.encode_cell({r:R,c:C});
+      var cell=ws[addr];
+      if(!cell)continue;
+      if(cell.f){hasFormula=true;if(!sample)sample=cell.f.substring(0,35);}
+      else if(cell.v!==undefined&&cell.v!==null){
+        hasValue=true;
+        if(typeof cell.v==='number')hasNumber=true;
+        if(!sample)sample=String(cell.v).substring(0,30);
+      }
+    }
+    // 取表头（第一行）
+    var hCell=ws[XLSX.utils.encode_cell({r:range.s.r,c:C})];
+    header=hCell?String(hCell.v||'').substring(0,20):'列'+(C+1);
+    cols.push({
+      index:C,header:header,
+      hasFormula,hasValue,hasNumber,
+      isFormulaOnly:hasFormula&&!hasValue,
+      isMixed:hasFormula&&hasValue,
+      sample:sample||'[空]'
+    });
+  }
+  return {columns:cols,rowCount:range.e.r-range.s.r+1,colCount:range.e.c-range.s.c+1};
+}
+
+// 渲染 Sheet 标签
+function renderSheetTabs(){
+  var box=$('sheetTabs');box.innerHTML='';
+  if(!App.workbook)return;
+  App.workbook.SheetNames.forEach(function(name,idx){
+    var btn=document.createElement('button');
+    btn.className='sheet-tab'+(name===App.currentSheet?' active':'');
+    var sel=App.selections[name]||new Set();
+    var badge=sel.size?'<span class="s-badge">'+sel.size+'列</span>':'';
+    btn.innerHTML=escapeHtml(name)+badge;
+    btn.onclick=function(){switchSheet(name)};
+    box.appendChild(btn);
+  });
+}
+
+// 切换工作表
+function switchSheet(name){
+  // 保存当前选择
+  if(App.currentSheet)saveCurrentSelection();
+  App.currentSheet=name;
+  renderSheetTabs();
+  renderColumnPicker(name);
+  renderPreview(name);
+  $('sheetInfo').textContent='当前：'+name+' · '+App.meta[name].rowCount+' 行 · '+App.meta[name].colCount+' 列';
+  // 显示公式提示
+  var hasFormula=App.meta[name].columns.some(function(c){return c.hasFormula});
+  $('formulaTip').className='tipbar'+(hasFormula?' show':'');
+}
+
+function saveCurrentSelection(){
+  if(!App.currentSheet)return;
+  var set=new Set();
+  document.querySelectorAll('#tbCols input[type="checkbox"]').forEach(function(cb){if(cb.checked)set.add(parseInt(cb.value))});
+  App.selections[App.currentSheet]=set;
+}
+
+// 渲染列选择器
+function renderColumnPicker(sheetName){
+  var meta=App.meta[sheetName];if(!meta)return;
+  var box=$('tbCols');box.innerHTML='';
+  var sel=App.selections[sheetName]||new Set();
+  meta.columns.forEach(function(col){
+    var label=document.createElement('label');
+    label.className='col'+(sel.has(col.index)?' on':'')+(col.isFormulaOnly?' formula-only':'');
+    var typeClass=col.isFormulaOnly?'formula':col.isMixed?'mixed':'data';
+    var typeText=col.isFormulaOnly?'纯公式':col.isMixed?'混合':'数据';
+    var checked=sel.has(col.index)?'checked':'';
+    label.innerHTML='<input type="checkbox" value="'+col.index+'" '+checked+' '+(col.isFormulaOnly?'disabled':'')+'>'+
+      '<div><div class="cname">'+escapeHtml(col.header)+'</div>'+
+      '<span class="ctype '+typeClass+'">'+typeText+'</span>'+
+      '<div class="csample">'+escapeHtml(col.sample)+'</div></div>';
+    label.querySelector('input').onchange=function(){label.classList.toggle('on',this.checked)};
+    box.appendChild(label);
+  });
+}
+
+// 渲染预览（前 200 行）
+function renderPreview(sheetName){
+  var ws=App.workbook.Sheets[sheetName];if(!ws)return;
+  var data=XLSX.utils.sheet_to_json(ws,{header:1,range:0,defval:''});
+  data=data.slice(0,201);
+  var html='<thead><tr>';
+  var colCount=0;
+  data.forEach(function(r){if(r.length>colCount)colCount=r.length});
+  for(var i=0;i<colCount;i++)html+='<th>列'+(i+1)+'</th>';
+  html+='</tr></thead><tbody>';
+  data.forEach(function(row,ri){
+    html+='<tr>';
+    for(var i=0;i<colCount;i++){
+      var addr=XLSX.utils.encode_cell({r:ri,c:i});
+      var cell=ws[addr];
+      var val=row[i]!==undefined?row[i]:'';
+      var cls='';
+      var title='';
+      if(App.changedCells.has(sheetName+'!'+addr)){cls='chg';title='脱敏前: '+val;}
+      else if(cell&&cell.f){cls='formula';title='公式: '+cell.f;}
+      html+='<td class="'+cls+'" title="'+escapeHtml(title)+'">'+escapeHtml(String(val))+'</td>';
+    }
+    html+='</tr>';
+  });
+  html+='</tbody>';
+  $('tbPreview').innerHTML=html;
+}
+
+// 智能推荐
+$('tbPickRec').onclick=function(){
+  if(!App.currentSheet)return;
+  var meta=App.meta[App.currentSheet];
+  var set=new Set();
+  meta.columns.forEach(function(col){
+    if(col.isFormulaOnly)return;
+    if(col.hasNumber)set.add(col.index);
+    var h=col.header.toLowerCase();
+    if(/金额|收入|成本|利润|薪资|工资|价格|数量|数值|年龄|得分|预算|费用|销售额|营收/i.test(h))set.add(col.index);
+  });
+  App.selections[App.currentSheet]=set;
+  renderColumnPicker(App.currentSheet);
+  renderSheetTabs();
+  toast('已推荐 '+set.size+' 列');
+}
+$('tbPickAll').onclick=function(){if(!App.currentSheet)return;var set=new Set();App.meta[App.currentSheet].columns.forEach(function(c){if(!c.isFormulaOnly)set.add(c.index)});App.selections[App.currentSheet]=set;renderColumnPicker(App.currentSheet);renderSheetTabs();}
+$('tbPickNone').onclick=function(){if(!App.currentSheet)return;App.selections[App.currentSheet]=new Set();renderColumnPicker(App.currentSheet);renderSheetTabs();}
+
+// 上传/粘贴解析
+function parseWorkbook(data,filename){
+  try{
+    var wb=XLSX.read(data,{type:'array',cellFormula:true});
+    App.workbook=wb;
+    App.meta={};
+    App.selections={};
+    App.changedCells=new Set();
+    wb.SheetNames.forEach(function(name){
+      App.meta[name]=analyzeSheet(wb.Sheets[name]);
+      App.selections[name]=new Set();
+    });
+    App.currentSheet=wb.SheetNames[0];
+    // 默认给第一个表智能推荐
+    var first=App.currentSheet;
+    var set=new Set();
+    App.meta[first].columns.forEach(function(col){
+      if(col.isFormulaOnly)return;
+      if(col.hasNumber)set.add(col.index);
+      var h=col.header.toLowerCase();
+      if(/金额|收入|成本|利润|薪资|工资|价格|数量|数值|年龄|得分|预算|费用|销售额|营收/i.test(h))set.add(col.index);
+    });
+    App.selections[first]=set;
+
+    $('tbColCard').hidden=false;
+    $('tbResWrap').hidden=false;
+    $('tbMeta').textContent='已载入：'+escapeHtml(filename)+' · 共 '+wb.SheetNames.length+' 个工作表：'+wb.SheetNames.join('、');
+    $('tbMeta').className='meta show';
+    renderSheetTabs();
+    switchSheet(App.currentSheet);
+    toast('已识别 '+wb.SheetNames.length+' 个工作表');
+  }catch(e){toast('解析失败：'+e.message,1);console.error(e)}
+}
+
+$('tbFile').onchange=function(e){
+  var f=e.target.files[0];if(!f)return;
+  var r=new FileReader();
+  r.onload=function(ev){parseWorkbook(ev.target.result,f.name)};
+  r.readAsArrayBuffer(f);
+}
+$('tbPasteClip').onclick=async function(){
+  try{
+    var text=await navigator.clipboard.readText();
+    if(!text.trim()){toast('剪贴板为空',1);return}
+    $('tbInput').value=text.substring(0,5000);
+    // 尝试解析为 CSV（制表符或逗号）
+    var lines=text.split(/\r?\n/).filter(function(l){return l.trim()});
+    if(lines.length>1){
+      var sep=text.indexOf('\t')>0?'\t':',';
+      var aoa=lines.map(function(l){return l.split(sep)});
+      var ws=XLSX.utils.aoa_to_sheet(aoa);
+      var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'粘贴数据');
+      App.workbook=wb;App.meta={'粘贴数据':analyzeSheet(ws)};App.selections={'粘贴数据':new Set()};App.changedCells=new Set();App.currentSheet='粘贴数据';
+      $('tbColCard').hidden=false;$('tbResWrap').hidden=false;
+      $('tbMeta').textContent='已从剪贴板导入 '+aoa.length+' 行数据（注意：剪贴板无法保留公式）';
+      $('tbMeta').className='meta show';
+      renderSheetTabs();switchSheet('粘贴数据');
+    }
+  }catch(e){toast('读取剪贴板失败：'+e.message,1)}
+}
+$('tbSample').onclick=function(){
+  var aoa=[['姓名','部门','基本工资','绩效系数','奖金','总包','备注'],
+           ['张三','研发',15000,1.2,'=C2*D2','=C2+E2','2024年数据'],
+           ['李四','产品',12000,1.1,'=C3*D3','=C3+E3','2024年数据'],
+           ['王五','设计',13000,1.15,'=C4*D4','=C4+E4','2024年数据']];
+  var ws=XLSX.utils.aoa_to_sheet(aoa);
+  var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'示例');
+  App.workbook=wb;App.meta={'示例':analyzeSheet(ws)};App.selections={'示例':new Set()};App.changedCells=new Set();App.currentSheet='示例';
+  $('tbColCard').hidden=false;$('tbResWrap').hidden=false;
+  $('tbMeta').textContent='已填入示例（含公式关系：奖金=基本工资×系数，总包=基本工资+奖金）';
+  $('tbMeta').className='meta show';
+  renderSheetTabs();switchSheet('示例');
+}
+$('tbClear').onclick=function(){
+  App.workbook=null;App.meta={};App.selections={};App.currentSheet=null;App.changedCells=new Set();
+  $('tbInput').value='';$('tbColCard').hidden=true;$('tbResWrap').hidden=true;$('tbMeta').className='meta';$('tbPreview').innerHTML='';
+}
+
+// 执行脱敏（所有 Sheet）
+$('tbRun').onclick=function(){
+  if(!App.workbook){toast('请先载入表格',1);return}
+  saveCurrentSelection();
+  var strategy=document.querySelector('input[name="strategy"]:checked').value;
+  var seed=parseInt($('seedInput').value)||42;
+  var skipYear=$('skipYear').checked;
+  App.map={strategy,seed,valueMap:{}};
+  App.changedCells=new Set();
+  var totalChanges=0,totalPreserved=0,totalSheets=0;
+
+  App.workbook.SheetNames.forEach(function(sname){
+    var ws=App.workbook.Sheets[sname];
+    var cols=App.selections[sname]||new Set();
+    if(!cols.size)return;
+    totalSheets++;
+    var range=XLSX.utils.decode_range(ws['!ref']||'A1');
+    var colArr=Array.from(cols);
+
+    for(var R=range.s.r;R<=range.e.r;++R){
+      for(var i=0;i<colArr.length;i++){
+        var C=colArr[i];
+        var addr=XLSX.utils.encode_cell({r:R,c:C});
+        var cell=ws[addr];
+        if(!cell)continue;
+
+        // ===== 核心：保留公式 =====
+        if(cell.f){totalPreserved++;continue;}
+
+        var oldVal=cell.v;
+        if(oldVal===undefined||oldVal===null)continue;
+
+        var newVal=transformCell(oldVal,strategy,seed,skipYear,addr);
+        if(newVal!==oldVal){
+          cell.v=newVal;
+          delete cell.w;
+          if(cell.t==='n'&&typeof newVal==='string')cell.t='s';
+          else if(cell.t==='s'&&typeof newVal==='number')cell.t='n';
+          App.changedCells.add(sname+'!'+addr);
+          totalChanges++;
+        }
+      }
+    }
+  });
+
+  // 刷新当前预览
+  if(App.currentSheet)renderPreview(App.currentSheet);
+  $('tbStats').textContent='✅ 已处理 '+totalSheets+' 个工作表 · 脱敏 '+totalChanges+' 个单元格 · 🛡 保留 '+totalPreserved+' 个公式';
+  toast('脱敏完成！');
+}
+
+function transformCell(val,strategy,seed,skipYear,addr){
+  var map=App.map.valueMap;
+  if(typeof val==='number'){
+    if(skipYear&&isYear(val))return val;
+    var key='n_'+val;
+    if(map[key]!==undefined)return map[key];
+    var res;
+    if(strategy==='hash')res=hashNumber(val,seed+val);
+    else if(strategy==='blur')res=blurNumber(val,seed+val);
+    else if(strategy==='range')res=rangeNumber(val);
+    else{var idx=Object.keys(map).length;res='['+String.fromCharCode(65+(idx%26))+(Math.floor(idx/26)||'')+']';}
+    map[key]=res;
+    return res;
+  }
+  if(typeof val==='string'){
+    // 替换字符串中的数字子串
+    var changed=false;
+    var res=val.replace(/([+-]?(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?)([万亿元块美元%])?/g,function(m,num,unit){
+      unit=unit||'';
+      var raw=parseFloat(num.replace(/,/g,''));
+      if(isNaN(raw))return m;
+      if(skipYear&&isYear(raw))return m;
+      var key='s_'+raw+unit;
+      if(map[key]!==undefined){changed=true;return map[key];}
+      var r;
+      if(strategy==='hash')r=hashNumber(raw,seed+raw);
+      else if(strategy==='blur')r=blurNumber(raw,seed+raw);
+      else if(strategy==='range')r=rangeNumber(raw);
+      else{var idx=Object.keys(map).length;r='['+String.fromCharCode(65+(idx%26))+(Math.floor(idx/26)||'')+']';}
+      if(unit==='%')r=String(r)+'%';
+      else if(unit)r=String(Math.round(parseFloat(r)||0))+unit;
+      map[key]=r;
+      changed=true;
+      return r;
+    });
+    return changed?res:val;
+  }
+  return val;
+}
+
+$('tbCopy').onclick=function(){
+  if(!App.currentSheet)return;
+  var ws=App.workbook.Sheets[App.currentSheet];
+  var csv=XLSX.utils.sheet_to_csv(ws);
+  navigator.clipboard.writeText(csv).then(function(){toast('当前工作表已复制为 CSV')},function(){toast('复制失败',1)});
+}
+$('tbSave').onclick=function(){
+  if(!App.workbook){toast('没有可下载的内容',1);return}
+  XLSX.writeFile(App.workbook,'脱敏后数据.xlsx');
+  toast('已下载 .xlsx（公式与多工作表均已保留）');
+}
+$('tbSaveMap').onclick=function(){downloadText('映射表.json',JSON.stringify(App.map,null,2))}
+
+/* ===================== 还原面板 ===================== */
+$('rMapFile').onchange=function(e){var f=e.target.files[0];if(!f)return;var r=new FileReader();r.onload=function(){$('rMapText').value=r.result;$('rMapMeta').textContent='已载入映射表：'+f.name;$('rMapMeta').className='meta show'};r.readAsText(f)}
+$('rFile').onchange=function(e){
+  var f=e.target.files[0];if(!f)return;
+  if(/\.(xlsx|xls)$/i.test(f.name)){
+    var r=new FileReader();
+    r.onload=function(ev){
+      try{
+        App.restoreWb=XLSX.read(ev.target.result,{type:'array',cellFormula:true});
+        App.restoreName=f.name;
+        $('rInput').value='[已上传 Excel 文件：'+f.name+'，共 '+App.restoreWb.SheetNames.length+' 个工作表：'+App.restoreWb.SheetNames.join('、')+'，还原时将逐单元格替换]';
+        $('rMeta').textContent='已载入 Excel：'+f.name;
+        $('rMeta').className='meta show';
+      }catch(err){App.restoreWb=null;toast('Excel 解析失败：'+err.message,1)}
+    };
+    r.readAsArrayBuffer(f);
+  }else{
+    App.restoreWb=null;App.restoreName='';
+    var r=new FileReader();
+    r.onload=function(ev){$('rInput').value=ev.target.result;$('rMeta').textContent='已载入：'+f.name;$('rMeta').className='meta show'};
+    r.readAsText(f);
+  }
+}
+$('rClear').onclick=function(){$('rInput').value='';$('rMapText').value='';App.restoreWb=null;App.restoreName='';$('rResWrap').hidden=true}
+
+// 由映射表构建还原条目：剥离 n_/s_ 前缀，把脱敏值换回原始值
+function buildRestoreEntries(valueMap){
+  return Object.entries(valueMap).map(function(pair){
+    var key=pair[0];
+    var orig=key.replace(/^[ns]_/,''); // n_15000 -> 15000；s_23.5% -> 23.5%
+    return {orig:orig,masked:String(pair[1])};
+  }).filter(function(e){return e.masked!==''}).sort(function(a,b){return b.masked.length-a.masked.length});
+}
+
+// 单元格级还原：数值做精确匹配，字符串做子串替换
+function restoreCellValue(v,entries){
+  if(typeof v==='number'){
+    var s=String(v);
+    for(var i=0;i<entries.length;i++){
+      if(entries[i].masked===s){
+        var n=parseFloat(entries[i].orig.replace(/,/g,''));
+        if(!isNaN(n)&&/^[-+]?\d[\d,]*(\.\d+)?$/.test(entries[i].orig))return n;
+        return entries[i].orig;
+      }
+    }
+    return v;
+  }
+  if(typeof v==='string'){
+    var out=v;
+    entries.forEach(function(e){
+      if(out.indexOf(e.masked)===-1)return;
+      out=out.split(e.masked).join(e.orig);
+    });
+    return out;
+  }
+  return v;
+}
+
+$('rRun').onclick=function(){
+  var mapText=$('rMapText').value.trim();
+  if(!mapText){toast('请提供映射表',1);return}
+  try{var map=JSON.parse(mapText);}catch(e){toast('映射表 JSON 格式错误',1);return}
+  if(!map.valueMap){toast('映射表缺少 valueMap 字段',1);return}
+  var strategy=map.strategy||'';
+  if(strategy==='blur'||strategy==='range'){toast('⚠ 当前映射表为 '+strategy+' 策略，可能无法精确还原',1)}
+  var entries=buildRestoreEntries(map.valueMap);
+
+  if(App.restoreWb){
+    // ===== Excel 还原：逐单元格替换 =====
+    var cellCount=0;
+    App.restoreWb.SheetNames.forEach(function(sname){
+      var ws=App.restoreWb.Sheets[sname];
+      var range=XLSX.utils.decode_range(ws['!ref']||'A1');
+      for(var R=range.s.r;R<=range.e.r;++R){
+        for(var C=range.s.c;C<=range.e.c;++C){
+          var addr=XLSX.utils.encode_cell({r:R,c:C});
+          var cell=ws[addr];
+          if(!cell||cell.f)continue; // 公式单元格保留，会自动重算
+          if(cell.v===undefined||cell.v===null)continue;
+          var nv=restoreCellValue(cell.v,entries);
+          if(nv!==cell.v){
+            cell.v=nv;delete cell.w;
+            if(typeof nv==='number')cell.t='n';
+            else if(typeof nv==='string')cell.t='s';
+            cellCount++;
+          }
+        }
+      }
+    });
+    $('rOut').value='[Excel 还原完成] 共替换 '+cellCount+' 个单元格，涉及 '+App.restoreWb.SheetNames.length+' 个工作表。点击「下载还原文件」获取 .xlsx。';
+    $('rStats').textContent='已替换 '+cellCount+' 个单元格';
+    $('rResWrap').hidden=false;
+    toast(cellCount?'Excel 还原完成':'没有匹配到可还原的内容',cellCount?0:1);
+    return;
+  }
+
+  // ===== 文本还原 =====
+  var input=$('rInput').value;
+  if(!input){toast('请提供脱敏后的内容',1);return}
+  var out=input;
+  var count=0;
+  entries.forEach(function(e){
+    var re=new RegExp(escapeRegExp(e.masked),'g');
+    if(re.test(out)){count++;out=out.replace(re,e.orig)}
+  });
+  $('rOut').value=out;
+  $('rStats').textContent='已执行 '+count+' 种映射替换';
+  $('rResWrap').hidden=false;
+}
+function escapeRegExp(s){return s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}
+$('rCopy').onclick=function(){copyText($('rOut'))}
+$('rSave').onclick=function(){
+  if(App.restoreWb){
+    var name=App.restoreName?('还原后_'+App.restoreName):'还原后数据.xlsx';
+    XLSX.writeFile(App.restoreWb,name);
+    toast('已下载还原后的 .xlsx');
+  }else{
+    downloadText('还原后数据.txt',$('rOut').value)
+  }
+}
+
+/* ===================== 标签页切换 ===================== */
+document.querySelectorAll('.tab').forEach(function(tab){
+  tab.onclick=function(){
+    document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active')});
+    document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active')});
+    tab.classList.add('active');
+    $('panel-'+tab.dataset.tab).classList.add('active');
+  }
+});
+</script>
+</body>
+</html>
