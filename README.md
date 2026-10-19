@@ -71,7 +71,7 @@ Python · OpenAI SDK · Gradio · 智谱 GLM-4-Flash / embedding-2 / rerank · B
 
 - [x] LLM API + Prompt 工程 + Function Calling
 - [x] RAG：权限隔离 / 混合检索 / Rerank / Eval
-- [ ] Query 改写（多轮追问的指代补全）
+- [x] Query 改写（多轮追问的指代补全，改写失败自动退回原问题）
 - [ ] LangGraph 多步编排 + 人工干预节点
 - [ ] MCP Server（对接数据库/API）
 - [ ] Docker + FastAPI 部署

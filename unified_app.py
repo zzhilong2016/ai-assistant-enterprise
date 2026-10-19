@@ -246,6 +246,40 @@ def chat(message, history, provider_name):
 
 
 # ---------- 知识库问答: 检索(权限过滤+混合+精排) → 组装证据 → 流式生成 ----------
+REWRITE_PROMPT = """将用户的问题改写为独立的搜索查询, 用于在企业知识库中检索资料。
+规则:
+1. 如果问题本身自包含, 不需要上下文就能理解, 原样返回, 一个字都不改;
+2. 如果问题含指代词(那/这个/它/上面/还有呢/专业版等), 结合对话历史补全成完整问句;
+3. 只输出改写后的查询文本, 不要任何解释、引号或前缀。
+
+对话历史:
+{history}
+
+用户问题: {question}
+
+改写后的搜索查询:"""
+
+
+def rewrite_query(client, cfg, message, history):
+    """Query改写: 把带指代的追问补全成独立查询。失败/无历史时原样返回"""
+    recent = [h for h in (history or []) if isinstance(h, dict)][-6:]   # 取最近3轮
+    if not recent:
+        return message
+    hist_text = "\n".join(f"{'用户' if h['role'] == 'user' else '助手'}: {_extract_text(h['content'])[:100]}"
+                          for h in recent)
+    try:
+        resp = client.chat.completions.create(
+            model=cfg["model"], timeout=30,
+            messages=[{"role": "user", "content":
+                       REWRITE_PROMPT.format(history=hist_text, question=message)}],
+        )
+        rewritten = resp.choices[0].message.content.strip().strip('"“”')
+        # 护栏: 改写结果不能是空话/过长, 否则视为失败退回原问题
+        return rewritten if 0 < len(rewritten) <= 100 else message
+    except Exception:
+        return message   # 改写失败不阻塞主流程, 用原问题检索
+
+
 def kb_chat(message, history, provider_name, user_label):
     """RAG模式: 与chat()相同的双输出生成器约定 (yield 文本, 调试dict)"""
     cfg = PROVIDERS[provider_name]
@@ -254,9 +288,13 @@ def kb_chat(message, history, provider_name, user_label):
     debug = {"模式": "知识库问答", "当前用户": user_label, "角色": roles, "检索命中": []}
 
     yield "*(正在检索知识库...)*", debug
+    # Query改写: 追问("那云视讯呢")先补全成独立查询("云视讯怎么收费")再检索
+    query = rewrite_query(client, cfg, message, history)
+    if query != message:
+        debug["查询改写"] = {"原始问题": message, "改写后": query}
     try:
         store = get_kb_store()
-        hits = store.search(message, roles, top_k=3)
+        hits = store.search(query, roles, top_k=3)
     except Exception as e:
         yield f"⚠️ 检索失败: {type(e).__name__}\n(embedding/精排固定走智谱通道)", debug
         return
